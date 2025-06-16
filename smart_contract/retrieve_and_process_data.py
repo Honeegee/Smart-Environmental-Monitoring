@@ -6,7 +6,7 @@ import numpy as np
 w3 = Web3(Web3.HTTPProvider('http://127.0.0.1:7545'))  # Default Ganache URL
 
 # Load contract ABI and address (user should replace with actual values)
-contract_address = '0xB2F15D4a01F8977C369fcfC300bd1F1e46686b2C'
+contract_address = '0x0f35F277FF0087f1e37d57611AEbD601fbA5FB2a'
 contract_abi = [
 	{
 		"inputs": [],
@@ -188,18 +188,29 @@ def retrieve_and_process_data():
     data = []
     for i in range(total_records):
         record = contract.functions.getRecord(i).call()
+        
+        # Parse the data_value to extract original timestamp and value
+        data_value = record[3]
+        if "|" in data_value:
+            original_timestamp, actual_value = data_value.split("|", 1)
+        else:
+            # Fallback to blockchain timestamp if no original timestamp
+            original_timestamp = pd.to_datetime(record[0], unit="s").strftime("%Y-%m-%d %H:%M:%S")
+            actual_value = data_value
+        
         data.append({
-            "timestamp": record[0],
+            "timestamp": original_timestamp,
             "device_id": record[1],
             "data_type": record[2],
-            "data_value": record[3]
+            "data_value": actual_value
         })
 
     # Convert to DataFrame
     df = pd.DataFrame(data)
-    df["timestamp"] = pd.to_datetime(df["timestamp"], unit="s")
+    # Convert timestamp to datetime (it's already in string format from CSV)
+    df["timestamp"] = pd.to_datetime(df["timestamp"])
 
-    # Extract numeric values
+    # Extract numeric values from the actual sensor values
     df["numeric_value"] = df["data_value"].str.extract(r'(\d+\.?\d*)').astype(float)
 
     # Handle missing values

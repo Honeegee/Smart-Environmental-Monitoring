@@ -13,9 +13,9 @@ else:
     print("❌ Connection failed. Ensure Ganache is running.")
 
 # Replace with your deployed contract address from Remix
-contract_address = Web3.to_checksum_address("0xB2F15D4a01F8977C369fcfC300bd1F1e46686b2C")
+contract_address = Web3.to_checksum_address("0x0f35F277FF0087f1e37d57611AEbD601fbA5FB2a")
 # Replace with the address that deployed the contract (the owner)
-owner_address = Web3.to_checksum_address("0x7794122Ec9c2a50FE00E05a3090755a4AD5A992b")
+owner_address = Web3.to_checksum_address("0xA3f985024B6e75d27C16FE2adF3582E38E281B20")
 
 print(f"Using contract address: {contract_address}")
 print(f"Using owner address: {owner_address}")
@@ -217,19 +217,23 @@ try:
     print("\nData structure:")
     print(df.head())
 
-    def send_environmental_data(device_id, data_type, value):
+    def send_environmental_data(device_id, data_type, value, timestamp):
         """Sends environmental data to the deployed smart contract"""
         try:
-            txn = contract.functions.storeData(device_id, data_type, str(value)).transact({
+            # Include timestamp in the data value to preserve original timing
+            data_with_timestamp = f"{timestamp}|{value}"
+            txn = contract.functions.storeData(device_id, data_type, data_with_timestamp).transact({
                 'from': owner_address,
                 'gas': 500000
             })
             receipt = web3.eth.wait_for_transaction_receipt(txn)
-            print(f"✅ Data Stored: {data_type} = {value}, Txn Hash: {receipt.transactionHash.hex()}")
+            print(f"✅ Data Stored: {data_type} = {value} at {timestamp}, Txn Hash: {receipt.transactionHash.hex()}")
             return True
         except Exception as e:
             print(f"❌ Error storing data: {str(e)}")
             return False
+            
+            
     
     # Process each row and send data to blockchain
     print("\nStoring environmental data on blockchain...")
@@ -241,7 +245,8 @@ try:
         success = send_environmental_data(
             row["device_id"],
             "Temperature",
-            f"{row['temperature']}°C"
+            f"{row['Temperature']}°C",
+            row["timestamp"]
         )
         if success:
             stored_count += 1
@@ -253,7 +258,8 @@ try:
         success = send_environmental_data(
             row["device_id"],
             "Humidity",
-            f"{row['humidity']}%"
+            f"{row['Humidity']}%",
+            row["timestamp"]
         )
         if success:
             stored_count += 1
@@ -265,7 +271,8 @@ try:
         success = send_environmental_data(
             row["device_id"],
             "CO2",
-            f"{row['co2_level']}ppm"
+            f"{row['CO2']}ppm",
+            row["timestamp"]
         )
         if success:
             stored_count += 1
@@ -277,7 +284,8 @@ try:
         success = send_environmental_data(
             row["device_id"],
             "AirQuality",
-            str(row['air_quality'])
+            str(row['AirQuality']),
+            row["timestamp"]
         )
         if success:
             stored_count += 1
